@@ -1,0 +1,8 @@
+# Public repo safety rail
+secrets/live/
+backup-artifacts/latest/
+backup-artifacts/runs/
+
+# Local-only env overrides
+*.local
+*.env

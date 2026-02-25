@@ -1,0 +1,25 @@
+hostname = "<HOSTNAME>"
+instance_name = "<INSTANCE_NAME>"
+instance_id = "<INSTANCE_ID>"
+ipv4 = "<HOST_IP>/24"
+dhcp = false
+listeners = [
+    "tcp://0.0.0.0:11010",
+    "udp://0.0.0.0:11010",
+    "wg://0.0.0.0:11011",
+]
+
+[network_identity]
+network_name = "<NETWORK_NAME>"
+network_secret = "<NETWORK_SECRET>"
+
+[[peer]]
+uri = "tcp://<PEER_IP>:11010"
+
+[flags]
+dev_name = "<EASYTIER_DEV_NAME>"
+enable_exit_node = true
+enable_kcp_proxy = true
+private_mode = true
+
+bind_device = true

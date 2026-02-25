@@ -1,0 +1,6 @@
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Every day at 03:17
+17 3 * * * root /opt/ops/scripts/backup.sh --retention-days 14 >> /opt/logs/ops-backup.log 2>&1
+

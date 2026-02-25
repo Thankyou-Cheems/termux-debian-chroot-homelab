@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ops Gateway</title>
+  <style>
+    :root {
+      --bg-a: #0a1a2b;
+      --bg-b: #0f2c45;
+      --panel: rgba(255, 255, 255, 0.1);
+      --panel-border: rgba(255, 255, 255, 0.25);
+      --text: #eef6ff;
+      --muted: #c5d8ea;
+      --accent: #5ec9ff;
+      --accent-2: #74ffdc;
+      --danger: #ff7b7b;
+      --ok: #78ff9f;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI Variable", "Segoe UI", "Noto Sans", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(94, 201, 255, 0.26), transparent 40%),
+        radial-gradient(circle at 86% 78%, rgba(116, 255, 220, 0.2), transparent 38%),
+        linear-gradient(140deg, var(--bg-a), var(--bg-b));
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+    }
+
+    .shell {
+      width: min(1080px, 100%);
+      border: 1px solid var(--panel-border);
+      border-radius: 24px;
+      background: var(--panel);
+      backdrop-filter: blur(22px) saturate(140%);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .head {
+      padding: 28px 28px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.4rem, 2.5vw, 2rem);
+      letter-spacing: 0.4px;
+      font-weight: 650;
+    }
+
+    .sub {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+      line-height: 1.45;
+    }
+
+    .grid {
+      padding: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+
+    .card {
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 16px;
+      padding: 16px;
+      background: linear-gradient(165deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+      transition: transform 160ms ease, border-color 180ms ease, box-shadow 180ms ease;
+    }
+
+    .card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(94, 201, 255, 0.56);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .path {
+      margin: 0 0 12px;
+      font-family: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+
+    .desc {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      min-height: 38px;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .btn {
+      border: 1px solid rgba(255, 255, 255, 0.34);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.1);
+      text-decoration: none;
+      border-radius: 10px;
+      padding: 7px 11px;
+      font-size: 0.9rem;
+      transition: background-color 160ms ease, border-color 160ms ease;
+    }
+
+    .btn:hover {
+      background: rgba(94, 201, 255, 0.18);
+      border-color: rgba(94, 201, 255, 0.74);
+    }
+
+    .status {
+      font-size: 0.82rem;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.26);
+      color: var(--muted);
+    }
+
+    .ok {
+      color: #072511;
+      background: var(--ok);
+      border-color: rgba(120, 255, 159, 0.8);
+    }
+
+    .bad {
+      color: #2f0808;
+      background: var(--danger);
+      border-color: rgba(255, 123, 123, 0.8);
+    }
+
+    .foot {
+      border-top: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 10px 20px 14px;
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="head">
+      <h1 class="title">Operations Gateway</h1>
+      <p class="sub">Unified entry at <strong>:8080</strong>. Services are exposed by sub-path.</p>
+    </section>
+
+    <section class="grid">
+      <article class="card" data-health="/mcs/">
+        <h2>MCSManager</h2>
+        <p class="path">/mcs/</p>
+        <p class="desc">Minecraft service management panel.</p>
+        <div class="row">
+          <a class="btn" href="/mcs/">Open</a>
+          <span class="status" data-status>checking...</span>
+        </div>
+      </article>
+
+      <article class="card" data-health="/asf/">
+        <h2>ArchiSteamFarm</h2>
+        <p class="path">/asf/</p>
+        <p class="desc">ASF web interface and bot runtime.</p>
+        <div class="row">
+          <a class="btn" href="/asf/">Open</a>
+          <span class="status" data-status>checking...</span>
+        </div>
+      </article>
+
+      <article class="card" data-health="/aria2/">
+        <h2>AriaNg</h2>
+        <p class="path">/aria2/</p>
+        <p class="desc">Aria2 web UI through Caddy route.</p>
+        <div class="row">
+          <a class="btn" href="/aria2/">Open</a>
+          <span class="status" data-status>checking...</span>
+        </div>
+      </article>
+
+      <article class="card" data-health="/syncthing/">
+        <h2>Syncthing</h2>
+        <p class="path">/syncthing/</p>
+        <p class="desc">Peer-to-peer file sync console behind Caddy.</p>
+        <div class="row">
+          <a class="btn" href="/syncthing/">Open</a>
+          <span class="status" data-status>checking...</span>
+        </div>
+      </article>
+
+      <article class="card" data-health="/jsonrpc">
+        <h2>Aria2 RPC</h2>
+        <p class="path">/jsonrpc</p>
+        <p class="desc">API endpoint for download automation.</p>
+        <div class="row">
+          <a class="btn" href="/jsonrpc">Open</a>
+          <span class="status" data-status>checking...</span>
+        </div>
+      </article>
+
+      <article class="card" data-dynamic-link="ha">
+        <h2>Home Assistant</h2>
+        <p class="path"><span data-dynamic-path="ha">:8123/</span></p>
+        <p class="desc">Home automation dashboard (uv-managed runtime).</p>
+        <div class="row">
+          <a class="btn" data-dynamic-link="ha" href="http://127.0.0.1:8123/" target="_blank" rel="noopener">Open</a>
+          <span class="status" data-status>manual</span>
+        </div>
+      </article>
+    </section>
+
+    <footer class="foot">Tip: keep this page as your default bookmark for service navigation.</footer>
+  </main>
+
+  <script>
+    async function probe(url, target) {
+      try {
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        if ([200, 301, 302, 307, 308, 401, 403, 405].includes(res.status)) {
+          target.textContent = "online";
+          target.classList.add("ok");
+          return;
+        }
+        target.textContent = "status " + res.status;
+        target.classList.add("bad");
+      } catch (err) {
+        target.textContent = "offline";
+        target.classList.add("bad");
+      }
+    }
+
+    const haUrl = `${location.protocol}//${location.hostname}:8123/`;
+    document.querySelectorAll('[data-dynamic-link="ha"]').forEach((el) => {
+      if (el.tagName === "A") {
+        el.href = haUrl;
+      }
+    });
+    document.querySelectorAll('[data-dynamic-path="ha"]').forEach((el) => {
+      el.textContent = `${location.hostname}:8123/`;
+    });
+
+    document.querySelectorAll(".card").forEach((card) => {
+      const statusEl = card.querySelector("[data-status]");
+      const health = card.getAttribute("data-health");
+      if (!health) {
+        statusEl.textContent = "manual";
+        return;
+      }
+      probe(health, statusEl);
+    });
+  </script>
+</body>
+</html>
