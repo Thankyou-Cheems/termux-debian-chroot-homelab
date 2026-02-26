@@ -15,6 +15,7 @@ Sanitization policy:
    - `<DEPLOYMENT_REPO>`
    - `<NETWORK_SECRET>`
    - `<PEER_IP>`
+4. Build fails if leak sentinel detects sensitive markers.
 
 Regenerate:
 
