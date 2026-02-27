@@ -1,283 +1,423 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Ops Gateway</title>
   <style>
+    /* Fluent Design Styles */
     :root {
-      --bg-a: #0a1a2b;
-      --bg-b: #0f2c45;
-      --panel: rgba(255, 255, 255, 0.1);
-      --panel-border: rgba(255, 255, 255, 0.25);
-      --text: #eef6ff;
-      --muted: #c5d8ea;
-      --accent: #5ec9ff;
-      --accent-2: #74ffdc;
-      --danger: #ff7b7b;
-      --ok: #78ff9f;
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+      /* Light theme by default */
+      --page-bg: #f3f3f3;
+      --card-bg: rgba(255, 255, 255, 0.7);
+      --card-border: rgba(0, 0, 0, 0.05);
+      --text-main: #202020;
+      --text-secondary: #5d5d5d;
+      --accent: #0067c0;
+      --accent-hover: #005eb3;
+      --ok-bg: #dff6dd;
+      --ok-text: #107c10;
+      --bad-bg: #fde7e9;
+      --bad-text: #c50f1f;
+      --shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      --header-bg: rgba(255, 255, 255, 0.5);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page-bg: #202020;
+        --card-bg: rgba(45, 45, 45, 0.6);
+        --card-border: rgba(255, 255, 255, 0.08);
+        --text-main: #ffffff;
+        --text-secondary: #cccccc;
+        --accent: #4cc2ff;
+        --accent-hover: #47b1e8;
+        --ok-bg: rgba(16, 124, 16, 0.3);
+        --ok-text: #60cd18;
+        --bad-bg: rgba(197, 15, 31, 0.3);
+        --bad-text: #ff99a4;
+        --shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+        --header-bg: rgba(32, 32, 32, 0.5);
+      }
+    }
+
+    /* For Fluent, Mica and Acrylic effect */
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+      background-color: var(--page-bg);
+      background-image: radial-gradient(circle at top left, rgba(0, 103, 192, 0.08), transparent 50%),
+                        radial-gradient(circle at bottom right, rgba(76, 194, 255, 0.08), transparent 50%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      box-sizing: border-box;
     }
 
     * {
       box-sizing: border-box;
     }
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: "Segoe UI Variable", "Segoe UI", "Noto Sans", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 12% 18%, rgba(94, 201, 255, 0.26), transparent 40%),
-        radial-gradient(circle at 86% 78%, rgba(116, 255, 220, 0.2), transparent 38%),
-        linear-gradient(140deg, var(--bg-a), var(--bg-b));
-      display: grid;
-      place-items: center;
-      padding: 20px;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      background-image:
-        linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
-    }
-
     .shell {
-      width: min(1080px, 100%);
-      border: 1px solid var(--panel-border);
-      border-radius: 24px;
-      background: var(--panel);
-      backdrop-filter: blur(22px) saturate(140%);
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .header-card {
+      background: var(--header-bg);
+      backdrop-filter: blur(30px) saturate(150%);
+      -webkit-backdrop-filter: blur(30px) saturate(150%);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 28px;
       box-shadow: var(--shadow);
-      overflow: hidden;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
     }
 
-    .head {
-      padding: 28px 28px 18px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    }
-
-    .title {
+    .header-info h1 {
       margin: 0;
-      font-size: clamp(1.4rem, 2.5vw, 2rem);
-      letter-spacing: 0.4px;
-      font-weight: 650;
+      font-size: 2.2rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
     }
 
-    .sub {
-      margin: 8px 0 0;
-      color: var(--muted);
-      font-size: 0.96rem;
-      line-height: 1.45;
+    .header-info p {
+      margin: 6px 0 0;
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .clock-container {
+      text-align: right;
+    }
+
+    .time {
+      font-size: 2rem;
+      font-weight: 600;
+      margin: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .date {
+      color: var(--text-secondary);
+      margin: 4px 0 0;
+      font-size: 0.95rem;
     }
 
     .grid {
-      padding: 20px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
     }
 
     .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px) saturate(150%);
+      -webkit-backdrop-filter: blur(20px) saturate(150%);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 20px;
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
       position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 16px;
-      padding: 16px;
-      background: linear-gradient(165deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
-      transition: transform 160ms ease, border-color 180ms ease, box-shadow 180ms ease;
+      overflow: hidden;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    /* Subtle hover light effect (reveal) - basic simulation via pseudo element */
+    .card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.08), transparent 40%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    @media (prefers-color-scheme: light) {
+      .card::before {
+         background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(255,255,255,0.5), transparent 40%);
+      }
+    }
+
+    .card:hover::before {
+      opacity: 1;
     }
 
     .card:hover {
-      transform: translateY(-2px);
-      border-color: rgba(94, 201, 255, 0.56);
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+      border-color: rgba(128, 128, 128, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
     }
 
     .card h2 {
-      margin: 0 0 8px;
-      font-size: 1.05rem;
+      margin: 0;
+      font-size: 1.15rem;
       font-weight: 600;
     }
 
     .path {
-      margin: 0 0 12px;
-      font-family: "Cascadia Mono", "JetBrains Mono", "Consolas", monospace;
+      font-family: "Cascadia Code", "Consolas", monospace;
       color: var(--accent);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      background: rgba(128, 128, 128, 0.1);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-top: 6px;
+      display: inline-block;
     }
 
     .desc {
-      margin: 0 0 12px;
-      color: var(--muted);
+      margin: 0 0 20px;
+      color: var(--text-secondary);
       font-size: 0.9rem;
-      min-height: 38px;
+      line-height: 1.4;
+      flex-grow: 1;
     }
 
     .row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 10px;
+      margin-top: auto;
+      z-index: 2;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 8px;
     }
 
     .btn {
-      border: 1px solid rgba(255, 255, 255, 0.34);
-      color: var(--text);
-      background: rgba(255, 255, 255, 0.1);
-      text-decoration: none;
-      border-radius: 10px;
-      padding: 7px 11px;
+      background: rgba(128, 128, 128, 0.1);
+      border: 1px solid transparent;
+      color: var(--text-main);
+      padding: 8px 16px;
+      border-radius: 4px;
       font-size: 0.9rem;
-      transition: background-color 160ms ease, border-color 160ms ease;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      font-family: inherit;
     }
 
     .btn:hover {
-      background: rgba(94, 201, 255, 0.18);
-      border-color: rgba(94, 201, 255, 0.74);
+      background: rgba(128, 128, 128, 0.2);
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-hover);
     }
 
     .status {
-      font-size: 0.82rem;
-      padding: 4px 8px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.26);
-      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(128, 128, 128, 0.1);
+      color: var(--text-secondary);
+    }
+
+    .status::before {
+      content: "";
+      display: block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
     }
 
     .ok {
-      color: #072511;
-      background: var(--ok);
-      border-color: rgba(120, 255, 159, 0.8);
+      background: var(--ok-bg);
+      color: var(--ok-text);
     }
 
     .bad {
-      color: #2f0808;
-      background: var(--danger);
-      border-color: rgba(255, 123, 123, 0.8);
+      background: var(--bad-bg);
+      color: var(--bad-text);
     }
 
     .foot {
-      border-top: 1px solid rgba(255, 255, 255, 0.18);
-      padding: 10px 20px 14px;
-      font-size: 0.84rem;
-      color: var(--muted);
+      text-align: center;
+      padding: 20px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
     }
   </style>
 </head>
 <body>
-  <main class="shell">
-    <section class="head">
-      <h1 class="title">Operations Gateway</h1>
-      <p class="sub">Unified entry at <strong>:8080</strong>. Services are exposed by sub-path.</p>
-    </section>
+  <div class="shell">
+    <header class="header-card">
+      <div class="header-info">
+        <h1 id="greeting">Operations Gateway</h1>
+        <p>Unified entry at <strong>:8080</strong>. Services exposed by sub-path.</p>
+      </div>
+      <div class="clock-container">
+        <div class="time" id="time">--:--</div>
+        <div class="date" id="date">--</div>
+      </div>
+    </header>
 
-    <section class="grid">
-      <article class="card" data-health="/mcs/">
-        <h2>MCSManager</h2>
-        <p class="path">/mcs/</p>
-        <p class="desc">Minecraft service management panel.</p>
-        <div class="row">
-          <a class="btn" href="/mcs/">Open</a>
-          <span class="status" data-status>checking...</span>
-        </div>
-      </article>
+    <main class="grid" id="card-container">
+      <!-- Services will be generated here -->
+    </main>
 
-      <article class="card" data-health="/asf/">
-        <h2>ArchiSteamFarm</h2>
-        <p class="path">/asf/</p>
-        <p class="desc">ASF web interface and bot runtime.</p>
-        <div class="row">
-          <a class="btn" href="/asf/">Open</a>
-          <span class="status" data-status>checking...</span>
-        </div>
-      </article>
-
-      <article class="card" data-health="/aria2/">
-        <h2>AriaNg</h2>
-        <p class="path">/aria2/</p>
-        <p class="desc">Aria2 web UI through Caddy route.</p>
-        <div class="row">
-          <a class="btn" href="/aria2/">Open</a>
-          <span class="status" data-status>checking...</span>
-        </div>
-      </article>
-
-      <article class="card" data-health="/syncthing/">
-        <h2>Syncthing</h2>
-        <p class="path">/syncthing/</p>
-        <p class="desc">Peer-to-peer file sync console behind Caddy.</p>
-        <div class="row">
-          <a class="btn" href="/syncthing/">Open</a>
-          <span class="status" data-status>checking...</span>
-        </div>
-      </article>
-
-      <article class="card" data-health="/jsonrpc">
-        <h2>Aria2 RPC</h2>
-        <p class="path">/jsonrpc</p>
-        <p class="desc">API endpoint for download automation.</p>
-        <div class="row">
-          <a class="btn" href="/jsonrpc">Open</a>
-          <span class="status" data-status>checking...</span>
-        </div>
-      </article>
-
-      <article class="card" data-dynamic-link="ha">
-        <h2>Home Assistant</h2>
-        <p class="path"><span data-dynamic-path="ha">:8123/</span></p>
-        <p class="desc">Home automation dashboard (uv-managed runtime).</p>
-        <div class="row">
-          <a class="btn" data-dynamic-link="ha" href="http://127.0.0.1:8123/" target="_blank" rel="noopener">Open</a>
-          <span class="status" data-status>manual</span>
-        </div>
-      </article>
-    </section>
-
-    <footer class="foot">Tip: keep this page as your default bookmark for service navigation.</footer>
-  </main>
+    <footer class="foot">
+      Tip: Keep this page as your default bookmark for service navigation.
+    </footer>
+  </div>
 
   <script>
-    async function probe(url, target) {
+    const services = [
+      { id: 'mcs', name: 'MCSManager', path: '/mcs/', desc: 'Minecraft service management panel.' },
+      { id: 'asf', name: 'ArchiSteamFarm', path: '/asf/', desc: 'ASF web interface and bot runtime.' },
+      { id: 'aria2', name: 'AriaNg', path: '/aria2/', desc: 'Aria2 web UI through Caddy route.' },
+      { id: 'syncthing', name: 'Syncthing', path: '/syncthing/', desc: 'Peer-to-peer file sync console behind Caddy.' },
+      { id: 'jsonrpc', name: 'Aria2 RPC', path: '/jsonrpc', desc: 'API endpoint for download automation.' },
+      { id: 'ha', name: 'Home Assistant', path: ':8123/', desc: 'Home automation dashboard (uv-managed runtime).', isAbsolute: true }
+    ];
+
+    const container = document.getElementById('card-container');
+    const haUrl = `${location.protocol}//${location.hostname}:8123/`;
+
+    // Render cards
+    services.forEach(svc => {
+      const isHa = svc.id === 'ha';
+      const url = isHa ? haUrl : svc.path;
+      const displayPath = isHa ? `${location.hostname}:8123/` : svc.path;
+      const healthEndpoint = isHa ? null : svc.path;
+
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="card-header">
+          <h2>${svc.name}</h2>
+          <span class="status" id="status-${svc.id}">Checking...</span>
+        </div>
+        <div class="path">${displayPath}</div>
+        <div class="desc">${svc.desc}</div>
+        <div class="row">
+          <div class="btn-group">
+            <a href="${url}" class="btn primary" ${isHa ? 'target="_blank" rel="noopener"' : ''}>Open</a>
+            <button class="btn copy-btn" data-url="${url}">Copy Link</button>
+          </div>
+        </div>
+      `;
+      
+      // Reveal effect setup
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        card.style.setProperty('--mouse-x', `${x}px`);
+        card.style.setProperty('--mouse-y', `${y}px`);
+      });
+
+      container.appendChild(card);
+
+      // Copy link listener
+      const copyBtn = card.querySelector('.copy-btn');
+      copyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const fullUrl = new URL(url, window.location.href).href;
+        navigator.clipboard.writeText(fullUrl).then(() => {
+          const orig = copyBtn.textContent;
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => copyBtn.textContent = orig, 2000);
+        });
+      });
+
+      // Start health probe
+      if (healthEndpoint) {
+        probeStatus(healthEndpoint, svc.id);
+        // Set up interval for continuous probing every 15 seconds
+        setInterval(() => probeStatus(healthEndpoint, svc.id), 15000);
+      } else {
+        const statusEl = document.getElementById(`status-${svc.id}`);
+        statusEl.textContent = 'Manual';
+        statusEl.className = 'status';
+      }
+    });
+
+    async function probeStatus(url, id) {
+      const target = document.getElementById(`status-${id}`);
       try {
-        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
+        
+        const res = await fetch(url, { 
+          method: "GET", 
+          cache: "no-store",
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
         if ([200, 301, 302, 307, 308, 401, 403, 405].includes(res.status)) {
-          target.textContent = "online";
-          target.classList.add("ok");
-          return;
+          target.textContent = "Online";
+          target.className = "status ok";
+        } else {
+          target.textContent = "Err " + res.status;
+          target.className = "status bad";
         }
-        target.textContent = "status " + res.status;
-        target.classList.add("bad");
       } catch (err) {
-        target.textContent = "offline";
-        target.classList.add("bad");
+        target.textContent = "Offline";
+        target.className = "status bad";
       }
     }
 
-    const haUrl = `${location.protocol}//${location.hostname}:8123/`;
-    document.querySelectorAll('[data-dynamic-link="ha"]').forEach((el) => {
-      if (el.tagName === "A") {
-        el.href = haUrl;
-      }
-    });
-    document.querySelectorAll('[data-dynamic-path="ha"]').forEach((el) => {
-      el.textContent = `${location.hostname}:8123/`;
-    });
+    // Update Clock and Greeting
+    function updateTime() {
+      const now = new Date();
+      const hours = now.getHours();
+      let greeting = "Good evening";
+      if (hours >= 5 && hours < 12) greeting = "Good morning";
+      else if (hours >= 12 && hours < 18) greeting = "Good afternoon";
 
-    document.querySelectorAll(".card").forEach((card) => {
-      const statusEl = card.querySelector("[data-status]");
-      const health = card.getAttribute("data-health");
-      if (!health) {
-        statusEl.textContent = "manual";
-        return;
-      }
-      probe(health, statusEl);
-    });
+      document.getElementById('greeting').textContent = greeting + ", Ops Gateway";
+      
+      const timeOpts = { hour: '2-digit', minute: '2-digit', hour12: false };
+      document.getElementById('time').textContent = now.toLocaleTimeString(undefined, timeOpts);
+      
+      const dateOpts = { weekday: 'long', month: 'short', day: 'numeric' };
+      document.getElementById('date').textContent = now.toLocaleDateString(undefined, dateOpts);
+    }
+    
+    updateTime();
+    setInterval(updateTime, 1000);
   </script>
 </body>
 </html>
