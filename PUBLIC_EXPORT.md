@@ -19,4 +19,5 @@ Sanitization policy:
 
 Regenerate:
 
-1. `bash /opt/ops/scripts/export-public-repo.sh --force --output /opt/ops-public`
+1. Temporary export only: `bash /opt/ops/scripts/export-public-repo.sh --force --output /tmp/ops-public-export`
+2. Full publish flow: `bash /opt/ops/scripts/publish-public-repo.sh`

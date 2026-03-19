@@ -60,3 +60,4 @@ Codex non-fakeip 防护：
 2. 架构说明：`docs/ARCHITECTURE.md`
 3. 外层脚本说明：`host/README.md`
 4. 公开仓库去敏导出：`docs/PUBLIC_REPO.md`
+5. 公开仓库发布：`bash /opt/ops/scripts/publish-public-repo.sh`

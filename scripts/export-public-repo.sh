@@ -8,22 +8,28 @@ source "${SCRIPT_DIR}/lib.sh"
 usage() {
   cat <<'EOF'
 Usage:
-  export-public-repo.sh [--source <ops_repo>] [--output <public_repo_dir>] [--force] [--init-git]
+  export-public-repo.sh [--source <ops_repo>] [--output <export_dir>] [--force] [--init-git]
 
 Examples:
   bash /opt/ops/scripts/export-public-repo.sh
-  bash /opt/ops/scripts/export-public-repo.sh --output /opt/ops-public --force --init-git
+  bash /opt/ops/scripts/export-public-repo.sh --output /tmp/ops-public-export --force --init-git
 
 Description:
   Build a public-safe repository snapshot from a private /opt/ops repo by:
   1) allowlist-copying docs/scripts/templates only
   2) removing known sensitive runtime payload paths
   3) applying text redaction placeholders
+
+Important:
+  This script produces a sanitized export directory.
+  Do not point --output at an existing public Git worktree and use --force,
+  because that will remove the worktree contents including .git metadata.
+  Use publish-public-repo.sh for the full "export + sync + commit + push" flow.
 EOF
 }
 
 SOURCE_REPO="/opt/ops"
-OUTPUT_DIR="/opt/ops-public"
+OUTPUT_DIR="/tmp/ops-public-export"
 FORCE_OVERWRITE=0
 INIT_GIT=0
 
@@ -69,6 +75,10 @@ if [[ "$SOURCE_REMOTE_URL" =~ github\.com[:/]([^/]+)/([^/.]+)(\.git)?$ ]]; then
 fi
 REDACT_GITHUB_USER="${REDACT_GITHUB_USER:-$SOURCE_GITHUB_USER}"
 REDACT_REPO_NAME="${REDACT_REPO_NAME:-$SOURCE_REPO_NAME}"
+
+if [[ -d "${OUTPUT_DIR}/.git" && "$FORCE_OVERWRITE" -eq 1 ]]; then
+  die "refusing to --force overwrite an existing git worktree: ${OUTPUT_DIR} (use publish-public-repo.sh instead)"
+fi
 
 if [[ -e "$OUTPUT_DIR" ]]; then
   if [[ "$FORCE_OVERWRITE" -eq 1 ]]; then
@@ -247,7 +257,8 @@ Sanitization policy:
 
 Regenerate:
 
-1. `bash /opt/ops/scripts/export-public-repo.sh --force --output /opt/ops-public`
+1. Temporary export only: `bash /opt/ops/scripts/export-public-repo.sh --force --output /tmp/ops-public-export`
+2. Full publish flow: `bash /opt/ops/scripts/publish-public-repo.sh`
 EOF
 
 mv "$TMP_DIR" "$OUTPUT_DIR"
