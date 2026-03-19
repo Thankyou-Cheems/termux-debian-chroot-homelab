@@ -38,7 +38,7 @@ bash /opt/ops/scripts/backup.sh
 9. 可用 `--skip-repo-history-prune` 临时跳过历史瘦身（会导致仓库体积增长）。
 10. 默认会清理 `data-snapshots/` 下超过保留期的临时目录（可用 `--keep-temp-dirs` 禁用）。
 11. 密钥已迁移后，`data` 快照只保存 `/opt/data` 下的软链接，真实密钥依赖 Git 中的 `secrets/live`。
-12. `data` 快照默认排除 Syncthing 同步数据目录：`/opt/data/syncthing/sync`。
+12. `data` 快照默认排除以下大体积/可再生目录：`/opt/data/syncthing/sync`、`/opt/data/aria2/data`、`/opt/data/transmission/data`、`/opt/data/transmission/incomplete`、`/opt/data/filebrowser/root`（该目录是 bind mount 聚合视图）。
 
 如需临时跳过密钥同步：
 
@@ -170,7 +170,9 @@ pm2 logs --lines 100
 3. `/asf/`：ASF
 4. `/aria2/`：AriaNg
 5. `/syncthing/`：Syncthing Web GUI
-6. HomeAssistant：`http://<host>:8123/`（按需启用）
+6. `/files/`：统一文件面板（aria2 / Transmission / Syncthing / Termux Home）
+7. HomeAssistant：`http://<host>:8123/`（按需启用）
+8. Tinyproxy（Docker 拉镜像代理）：`<HOST_IP>:18888`（默认允许 `<HOST_IP>/24`）
 
 分流页源码路径：
 
@@ -184,15 +186,65 @@ pm2 logs --lines 100
 4. Syncthing 配置目录：`/opt/data/syncthing/config`
 5. Syncthing 状态目录：`/opt/data/syncthing/state`
 6. Syncthing 同步目录：`/opt/data/syncthing/sync`（默认不打入 `backup.sh` 的 data 快照）
+7. Aria2 下载目录：`/opt/data/aria2/data`（默认不打入 `backup.sh` 的 data 快照）
+8. Transmission 下载目录：`/opt/data/transmission/data`（默认不打入 `backup.sh` 的 data 快照）
+9. Transmission 未完成目录：`/opt/data/transmission/incomplete`（默认不打入 `backup.sh` 的 data 快照）
+10. FileBrowser 数据目录：`/opt/data/filebrowser`（其中 `root/` 为 bind mount 聚合视图，默认不打入 `backup.sh` 的 data 快照）
+11. Tinyproxy 配置与日志：`/opt/data/tinyproxy/tinyproxy.conf`、`/opt/logs/tinyproxy/`
 
-## 8. Caddy 配置维护规则
+## 8.1 当前手机代理基线
 
-1. 只维护 `/opt/data/caddy/Caddyfile` 与 `/opt/data/caddy/upstreams.env`。
-2. 当前 `upstreams.env` 关键项：`ASF_UPSTREAM`、`SYNCTHING_UPSTREAM`。
-3. `/opt/apps/caddy/current/Caddyfile` 与 `/opt/apps/caddy/current/upstreams.env` 仅作为兼容入口，必须保持为软链接。
+当前 Android 侧实际运行的是 Mihomo/Meta 风格订阅，基线订阅地址：
+
+`http://<HOST_IP>:18080/baa3598c98ea835973bf0a57519ef0df-mobile.yaml`
+
+关键本地监听：
+
+1. `127.0.0.1:7890`：mixed proxy
+2. `127.0.0.1:1053`：本地 DNS
+3. `tun0`：代理 TUN 接口
+
+兼容性说明：
+
+1. 该代理与 `/opt` 业务栈当前端口无直接冲突：`8080`、`6800`、`8384`、`9091`、`18888` 可并存。
+2. 该代理启用了 `fake-ip`（`198.18.0.1/16`），Codex 访问稳定性依赖 `codex-fakeip-guard.sh` 的 `/etc/hosts` 修正逻辑。
+3. 该代理与 EasyTier 可共存，但依赖 `host/magisk/easytier/vpn_recover.sh` 持续修复上游 peer 路由，避免 TUN 抢走 EasyTier 关键出站路径。
+4. 如需额外启动第二个 Mihomo/Meta/Clash 内核，必须先避开 `7890` 和 `1053`，否则会直接端口冲突。
+
+## 9. Docker 代理开关（给 .1 使用）
+
+在 `.4` 上，tinyproxy 由 PM2 常驻，默认监听 `<HOST_IP>:18888`。
+
+在 `.1` 上可按需切换 Docker 是否走代理：
+
+启用代理（`.1` 执行）：
+
+```bash
+bash /opt/ops/scripts/docker-proxy-enable.sh http://<HOST_IP>:18888
+```
+
+禁用代理（`.1` 执行）：
+
+```bash
+bash /opt/ops/scripts/docker-proxy-disable.sh
+```
+
+说明：
+
+1. 上述两个脚本作用于 `.1` 的 `docker.service`，写入或删除 `/etc/systemd/system/docker.service.d/proxy.conf`。
+2. 每次切换都会自动 `systemctl daemon-reload && systemctl restart docker`。
+3. 若 `.1` 没有这两个脚本，可从 `.4:/opt/ops/scripts/` 拷贝后执行。
+
+## 9. Caddy 配置维护规则
+
+1. Git 管模板源文件位于 `/opt/ops/deploy/caddy/Caddyfile`。
+2. 运行态文件位于 `/opt/data/caddy/Caddyfile` 与 `/opt/data/caddy/upstreams.env`。
+3. 当运行态 `Caddyfile` 缺失时，`pm2-start-business.sh` 会优先从 Git 模板初始化。
+4. 当前 `upstreams.env` 关键项：`ASF_UPSTREAM`、`SYNCTHING_UPSTREAM`、`FILEBROWSER_UPSTREAM`。
+5. `/opt/apps/caddy/current/Caddyfile` 与 `/opt/apps/caddy/current/upstreams.env` 仅作为兼容入口，必须保持为软链接。
 4. 若误改成普通文件，执行 `bash /opt/ops/scripts/pm2-start-business.sh` 会自动恢复为软链接并同步上游配置。
 
-## 9. 外层脚本版本管理（Termux + Debian）
+## 10. 外层脚本版本管理（Termux + Debian）
 
 导入当前运行中的脚本到 Git 工作区：
 
@@ -252,7 +304,7 @@ bash /opt/ops/scripts/install-host-scripts.sh \
 4. 当前环境看不到 Termux 或 Magisk 路径时，导入会跳过缺失文件，不会中断。
 5. 若看不到 Magisk 路径，可通过 `--termux-cache-dir` 从 Termux 缓存副本导入 EasyTier 脚本。
 
-## 10. 密钥迁移与私有仓库备份
+## 11. 密钥迁移与私有仓库备份
 
 一次性迁移敏感文件到 `/opt/secrets` 并保持原路径可用：
 

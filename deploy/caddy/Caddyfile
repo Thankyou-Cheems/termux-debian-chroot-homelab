@@ -1,0 +1,72 @@
+# Caddy unified reverse proxy
+# Access entrypoint: :8080
+
+:8080 {
+	route {
+		redir /mcs /mcs/ 308
+		redir /asf /asf/ 308
+		redir /aria2 /aria2/ 308
+		redir /transmission /transmission/ 308
+		redir /syncthing /syncthing/ 308
+		redir /files /files/ 308
+		redir /direct /direct/ 308
+
+		handle /direct-ping* {
+			header Access-Control-Allow-Origin *
+			header Cache-Control "no-store"
+			respond "ok" 200
+		}
+
+		handle_path /direct-candidates* {
+			reverse_proxy 127.0.0.1:8096
+		}
+
+		handle /jsonrpc* {
+			reverse_proxy localhost:6800
+		}
+		handle /ws {
+			reverse_proxy localhost:6800
+		}
+
+		handle /mcs/* {
+			uri strip_prefix /mcs
+			reverse_proxy localhost:23333
+		}
+
+		handle /asf/* {
+			uri strip_prefix /asf
+			reverse_proxy {$ASF_UPSTREAM:127.0.0.1:1242}
+		}
+
+		handle /aria2/* {
+			uri strip_prefix /aria2
+			root * /opt/apps/ariang/current
+			file_server
+		}
+
+		handle /transmission/* {
+			reverse_proxy localhost:9091
+		}
+
+		handle /syncthing/* {
+			uri strip_prefix /syncthing
+			reverse_proxy {$SYNCTHING_UPSTREAM:127.0.0.1:8384} {
+				header_up Host 127.0.0.1:8384
+			}
+		}
+
+		handle /files/* {
+			uri strip_prefix /files
+			reverse_proxy {$FILEBROWSER_UPSTREAM:127.0.0.1:8095}
+		}
+
+		handle_path /direct/aria2* {
+			root * /opt/data/aria2/data
+			file_server browse
+		}
+
+		root * /opt/ops/services/portal
+		try_files {path} /index.html
+		file_server
+	}
+}

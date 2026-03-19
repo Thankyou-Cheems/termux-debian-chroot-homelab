@@ -4,6 +4,7 @@ set -euo pipefail
 ECOSYSTEM_FILE="/opt/ops/deploy/pm2/ecosystem.business.config.js"
 CADDY_DATA_DIR="/opt/data/caddy"
 CADDY_APP_DIR="/opt/apps/caddy/current"
+CADDY_TEMPLATE_FILE="/opt/ops/deploy/caddy/Caddyfile"
 ENABLE_HOMEASSISTANT="${ENABLE_HOMEASSISTANT:-0}"
 
 command -v pm2 >/dev/null 2>&1 || {
@@ -24,7 +25,10 @@ ensure_caddy_layout() {
   mkdir -p /opt/logs "$CADDY_DATA_DIR" "$CADDY_APP_DIR"
 
   if [[ ! -f "$data_caddy_file" ]]; then
-    if [[ -f "$app_caddy_file" && ! -L "$app_caddy_file" ]]; then
+    if [[ -f "$CADDY_TEMPLATE_FILE" ]]; then
+      cp "$CADDY_TEMPLATE_FILE" "$data_caddy_file"
+      echo "INFO: initialized Caddyfile from template ${CADDY_TEMPLATE_FILE}"
+    elif [[ -f "$app_caddy_file" && ! -L "$app_caddy_file" ]]; then
       cp "$app_caddy_file" "$data_caddy_file"
       echo "INFO: migrated Caddyfile to ${data_caddy_file}"
     else
@@ -87,13 +91,16 @@ ensure_upstream_defaults() {
   if ! grep -q '^SYNCTHING_UPSTREAM=' "$upstreams_file"; then
     printf 'SYNCTHING_UPSTREAM=127.0.0.1:8384\n' >> "$upstreams_file"
   fi
+  if ! grep -q '^FILEBROWSER_UPSTREAM=' "$upstreams_file"; then
+    printf 'FILEBROWSER_UPSTREAM=127.0.0.1:8095\n' >> "$upstreams_file"
+  fi
 }
 
 ensure_caddy_layout
 sync_asf_upstream
 ensure_upstream_defaults
 
-PM2_ONLY_APPS="asf,mcs-daemon,mcs-web,aria2,syncthing,caddy"
+PM2_ONLY_APPS="asf,mcs-daemon,mcs-web,aria2,transmission,bt-trackers,syncthing,filebrowser,direct-candidates,caddy,tinyproxy"
 if [[ "$ENABLE_HOMEASSISTANT" == "1" ]]; then
   PM2_ONLY_APPS="${PM2_ONLY_APPS},homeassistant"
   echo "INFO: HomeAssistant enabled for this run"

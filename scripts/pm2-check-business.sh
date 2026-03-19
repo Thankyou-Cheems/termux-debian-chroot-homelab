@@ -118,7 +118,10 @@ pm2 ls
 echo
 echo "== Port checks =="
 check_port 6800 "aria2-rpc"
+check_port 9091 "transmission-rpc"
 check_port 8384 "syncthing-gui"
+check_port 8095 "filebrowser"
+check_port 8096 "direct-candidates"
 check_port 8080 "caddy"
 check_port 23333 "mcs-web"
 check_port 24444 "mcs-daemon"
@@ -130,7 +133,10 @@ check_http "http://127.0.0.1:8080/" "caddy-root"
 check_http "http://127.0.0.1:8080/mcs/" "caddy-mcs"
 check_http "http://127.0.0.1:8080/asf/" "caddy-asf"
 check_http "http://127.0.0.1:8080/aria2/" "caddy-aria2"
+check_http "http://127.0.0.1:8080/transmission/" "caddy-transmission"
 check_http "http://127.0.0.1:8080/syncthing/" "caddy-syncthing"
+check_http "http://127.0.0.1:8080/files/" "caddy-files"
+check_http "http://127.0.0.1:8080/direct-candidates" "caddy-direct-candidates"
 check_http "http://${asf_upstream}/" "asf-web"
 check_http "http://127.0.0.1:8384/" "syncthing-gui"
 
@@ -169,6 +175,35 @@ if [[ -n "$rpc_secret" ]]; then
   fi
 else
   echo "FAIL missing rpc-secret in /opt/data/aria2/config/aria2.conf"
+  fail=1
+fi
+
+echo
+echo "== Transmission RPC check =="
+transmission_user_file="/opt/secrets/transmission/rpc-username.txt"
+transmission_password_file="/opt/secrets/transmission/rpc-password.txt"
+if [[ -s "$transmission_user_file" && -s "$transmission_password_file" ]]; then
+  transmission_auth="$(tr -d '\r\n' < "$transmission_user_file"):$(tr -d '\r\n' < "$transmission_password_file")"
+  transmission_headers="$(curl -sS -u "$transmission_auth" -D - -o /dev/null http://127.0.0.1:9091/transmission/rpc || true)"
+  transmission_sid="$(printf '%s\n' "$transmission_headers" | awk -F': ' 'tolower($1) == "x-transmission-session-id" { gsub(/\r/, "", $2); print $2; exit }')"
+  if [[ -n "$transmission_sid" ]]; then
+    transmission_res="$(curl -sS -u "$transmission_auth" \
+      -H "X-Transmission-Session-Id: $transmission_sid" \
+      -H 'Content-Type: application/json' \
+      -d '{"method":"session-stats"}' \
+      http://127.0.0.1:9091/transmission/rpc || true)"
+    if echo "$transmission_res" | grep -q '"result":"success"'; then
+      echo "OK   transmission rpc responded"
+    else
+      echo "FAIL transmission rpc check failed: ${transmission_res:-EMPTY}"
+      fail=1
+    fi
+  else
+    echo "FAIL transmission rpc session handshake failed"
+    fail=1
+  fi
+else
+  echo "FAIL missing transmission rpc credential files"
   fail=1
 fi
 

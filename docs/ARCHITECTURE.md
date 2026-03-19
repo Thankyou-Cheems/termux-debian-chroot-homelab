@@ -103,6 +103,24 @@ Nested control points:
    - `CODEX_FAKEIP_DOMAINS` (default: `chatgpt.com`)
    - `REFRESH_INTERVAL_SEC` (default: `15`)
 
+## 7.1) Mobile Proxy Baseline
+
+Current Android-side proxy baseline:
+
+1. The active mobile proxy is the Mihomo/Meta-style subscription currently served from `http://<HOST_IP>:18080/baa3598c98ea835973bf0a57519ef0df-mobile.yaml`.
+2. Expected local listeners from that subscription:
+   - mixed proxy: `127.0.0.1:7890`
+   - DNS: `127.0.0.1:1053`
+   - TUN interface: `tun0`
+3. Expected network behavior:
+   - `tun.enable: true`
+   - `dns.enhanced-mode: fake-ip`
+   - fake-ip range: `198.18.0.1/16`
+4. Coexistence notes:
+   - this does not directly conflict with the `/opt` business stack ports (`8080`, `6800`, `8384`, `9091`, `18888`)
+   - this does coexist with EasyTier, but relies on `vpn_recover.sh` to keep peer routes pinned to the physical uplink and preserve EasyTier reachability
+   - do not start a second local Mihomo/Meta instance with the same `7890` / `1053` listeners unless the ports are changed first
+
 ## 8) Rapid Verification
 
 1. Confirm daemon:
@@ -206,7 +224,7 @@ bash /opt/ops/scripts/backup.sh
 Outputs:
 
 1. Code bundle: `/opt/backup/git-bundles/ops-<timestamp>.bundle`
-2. Data snapshot: `/opt/backup/data-snapshots/data-<timestamp>.tar.gz` (contains `/opt/data`, with secret symlinks only, excludes `/opt/data/syncthing/sync`)
+2. Data snapshot: `/opt/backup/data-snapshots/data-<timestamp>.tar.gz` (contains `/opt/data`, with secret symlinks only, excludes `/opt/data/syncthing/sync`, `/opt/data/aria2/data`, `/opt/data/transmission/data`, `/opt/data/transmission/incomplete`, `/opt/data/filebrowser/root`)
 3. Repo backup artifacts mirror: `/opt/ops/backup-artifacts/runs/<timestamp>/*` and `/opt/ops/backup-artifacts/latest/*` (symlink pointers)
 4. Repo large artifacts retention: keep latest 3 runs by default (`--repo-artifacts-keep` to override)
 5. Old `backup-artifacts/runs/*` paths are pruned from Git history automatically (filter-repo-like rewrite, requires clean tracked worktree)

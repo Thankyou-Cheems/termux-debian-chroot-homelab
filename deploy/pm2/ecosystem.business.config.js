@@ -41,6 +41,26 @@ module.exports = {
       merge_logs: true
     },
     {
+      name: "transmission",
+      script: "/opt/ops/scripts/pm2-run-transmission.sh",
+      interpreter: "none",
+      autorestart: true,
+      max_restarts: 20,
+      out_file: "/opt/logs/transmission.out.log",
+      error_file: "/opt/logs/transmission.err.log",
+      merge_logs: true
+    },
+    {
+      name: "bt-trackers",
+      script: "/opt/ops/scripts/pm2-run-bt-trackers.sh",
+      interpreter: "none",
+      autorestart: true,
+      max_restarts: 20,
+      out_file: "/opt/logs/bt-trackers.out.log",
+      error_file: "/opt/logs/bt-trackers.err.log",
+      merge_logs: true
+    },
+    {
       name: "syncthing",
       script: "/opt/ops/scripts/pm2-run-syncthing.sh",
       interpreter: "none",
@@ -50,6 +70,26 @@ module.exports = {
       max_restarts: 20,
       out_file: "/opt/logs/syncthing.out.log",
       error_file: "/opt/logs/syncthing.err.log",
+      merge_logs: true
+    },
+    {
+      name: "filebrowser",
+      script: "/opt/ops/scripts/pm2-run-filebrowser.sh",
+      interpreter: "none",
+      autorestart: true,
+      max_restarts: 20,
+      out_file: "/opt/logs/filebrowser.out.log",
+      error_file: "/opt/logs/filebrowser.err.log",
+      merge_logs: true
+    },
+    {
+      name: "direct-candidates",
+      script: "/opt/ops/scripts/direct-candidates-server.py",
+      interpreter: "python3",
+      autorestart: true,
+      max_restarts: 20,
+      out_file: "/opt/logs/direct-candidates.out.log",
+      error_file: "/opt/logs/direct-candidates.err.log",
       merge_logs: true
     },
     {
@@ -81,6 +121,16 @@ module.exports = {
       max_restarts: 20,
       out_file: "/opt/logs/caddy.out.log",
       error_file: "/opt/logs/caddy.err.log",
+      merge_logs: true
+    },
+    {
+      name: "tinyproxy",
+      script: "/opt/ops/scripts/pm2-run-tinyproxy.sh",
+      interpreter: "none",
+      autorestart: true,
+      max_restarts: 20,
+      out_file: "/opt/logs/tinyproxy.out.log",
+      error_file: "/opt/logs/tinyproxy.err.log",
       merge_logs: true
     }
   ]

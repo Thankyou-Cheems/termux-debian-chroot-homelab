@@ -20,6 +20,7 @@ uri = "tcp://<PEER_IP>:11010"
 dev_name = "<EASYTIER_DEV_NAME>"
 enable_exit_node = true
 enable_kcp_proxy = true
+enable_quic_proxy = true
 private_mode = true
+use_smoltcp = true
 
-bind_device = true

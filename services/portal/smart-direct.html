@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Direct</title>
+  <style>
+    :root {
+      --bg: #0c1016;
+      --panel: #121923;
+      --text: #f4f7fb;
+      --muted: #94a3b8;
+      --accent: #6ee7b7;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at top left, rgba(110, 231, 183, 0.12), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(96, 165, 250, 0.12), transparent 35%),
+        var(--bg);
+      color: var(--text);
+      font-family: "Outfit", "Segoe UI", sans-serif;
+      padding: 24px;
+    }
+
+    .card {
+      width: min(680px, 100%);
+      background: rgba(18, 25, 35, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.8rem;
+    }
+
+    p, li {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    code {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    ul {
+      padding-left: 18px;
+      margin: 18px 0;
+    }
+
+    .status {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    a {
+      color: #93c5fd;
+    }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>Smart Direct</h1>
+    <p class="status" id="status">Testing reachable local addresses...</p>
+    <p id="target"></p>
+    <ul id="candidates"></ul>
+    <p id="fallback" hidden>
+      Auto selection failed. You can still open
+      <a id="fallback-link" href="/">the requested path manually</a>.
+    </p>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(location.search);
+    const requestedPath = params.get('path') || '/direct/aria2/';
+    const statusEl = document.getElementById('status');
+    const targetEl = document.getElementById('target');
+    const listEl = document.getElementById('candidates');
+    const fallbackEl = document.getElementById('fallback');
+    const fallbackLink = document.getElementById('fallback-link');
+
+    fallbackLink.href = requestedPath;
+    targetEl.textContent = `Target: ${requestedPath}`;
+
+    const fetchDynamicCandidates = async () => {
+      try {
+        const response = await fetch('/direct-candidates', {
+          method: 'GET',
+          cache: 'no-store'
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = await response.json();
+        return (payload.candidates || [])
+          .map((entry) => entry.origin)
+          .filter(Boolean);
+      } catch (_) {
+        return [];
+      }
+    };
+
+    const renderCandidate = (origin, text) => {
+      const item = document.createElement('li');
+      item.textContent = `${origin} :: ${text}`;
+      listEl.appendChild(item);
+    };
+
+    const probe = async (origin) => {
+      const controller = new AbortController();
+      const started = performance.now();
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
+
+      try {
+        const response = await fetch(`${origin}/direct-ping?t=${Date.now()}`, {
+          method: 'GET',
+          mode: 'cors',
+          cache: 'no-store',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const elapsed = performance.now() - started;
+        renderCandidate(origin, `${Math.round(elapsed)} ms`);
+        return { origin, elapsed };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        renderCandidate(origin, 'unreachable');
+        throw error;
+      }
+    };
+
+    const chooseBestOrigin = async () => {
+      const rawCandidates = [
+        location.origin,
+        ...(await fetchDynamicCandidates())
+      ];
+      const candidates = [...new Set(rawCandidates)];
+      const settled = await Promise.allSettled(candidates.map(probe));
+      const ok = settled
+        .filter((entry) => entry.status === 'fulfilled')
+        .map((entry) => entry.value)
+        .sort((a, b) => a.elapsed - b.elapsed);
+
+      if (ok.length === 0) {
+        fallbackEl.hidden = false;
+        statusEl.textContent = 'No direct local endpoint responded in time.';
+        return;
+      }
+
+      const best = ok[0];
+      statusEl.textContent = `Redirecting via ${best.origin}`;
+      setTimeout(() => {
+        location.href = `${best.origin}${requestedPath}`;
+      }, 250);
+    };
+
+    chooseBestOrigin();
+  </script>
+</body>
+</html>

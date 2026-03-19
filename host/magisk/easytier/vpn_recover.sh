@@ -37,6 +37,40 @@ get_peer_hosts() {
     | sort -u
 }
 
+get_active_peer_hosts() {
+  command -v ss >/dev/null 2>&1 || return 0
+
+  ss -Htunp 2>/dev/null \
+    | awk '/easytier-core/ {print $5}' \
+    | sed -E 's/^\[([0-9a-fA-F:]+)\]:[0-9]+$/\1/; s/^([0-9.]+):[0-9]+$/\1/' \
+    | awk '
+        NF == 0 { next }
+        /:/ { next }
+        $0 == "0.0.0.0" { next }
+        $0 ~ /^127\./ { next }
+        $0 ~ /^10\./ { next }
+        $0 ~ /^192\.168\./ { next }
+        $0 ~ /^169\.254\./ { next }
+        $0 ~ /^172\.(1[6-9]|2[0-9]|3[0-1])\./ { next }
+        { print }
+      ' \
+    | sort -u
+}
+
+list_uplink_tables() {
+  for table in wlan0 rmnet_data0 rmnet_data1 eth0; do
+    ip -4 route show table "$table" 2>/dev/null | grep -q "^default " || continue
+    echo "$table"
+  done
+}
+
+get_all_peer_hosts() {
+  {
+    get_peer_hosts
+    get_active_peer_hosts
+  } | awk 'NF' | sort -u
+}
+
 get_uplink() {
   for table in wlan0 rmnet_data0 rmnet_data1 eth0; do
     line="$(ip -4 route show table "$table" 2>/dev/null | awk '/^default /{print; exit}')"
@@ -77,7 +111,7 @@ pin_peer_routes() {
   up_gw="$(echo "$uplink" | awk '{print $2}')"
   [ -n "$up_dev" ] || return 0
 
-  for host in $(get_peer_hosts); do
+  for host in $(get_all_peer_hosts); do
     case "$host" in
       ""|*:* )
         continue
@@ -86,13 +120,25 @@ pin_peer_routes() {
 
     cur="$(ip -4 route show "$host/32" table main 2>/dev/null | head -n1)"
     if [ -n "$up_gw" ]; then
-      echo "$cur" | grep -q " dev $up_dev" && echo "$cur" | grep -q " via $up_gw" && continue
-      ip route replace "$host/32" via "$up_gw" dev "$up_dev" table main metric 5 >/dev/null 2>&1 || continue
-      log "peer route pinned: $host/32 via $up_gw dev $up_dev"
+      changed=0
+      if ! { echo "$cur" | grep -q " dev $up_dev" && echo "$cur" | grep -q " via $up_gw"; }; then
+        ip route replace "$host/32" via "$up_gw" dev "$up_dev" table main metric 5 >/dev/null 2>&1 || continue
+        changed=1
+      fi
+      for tbl in $(list_uplink_tables); do
+        ip route replace "$host/32" via "$up_gw" dev "$up_dev" table "$tbl" metric 5 >/dev/null 2>&1 || true
+      done
+      [ "$changed" -eq 1 ] && log "peer route pinned: $host/32 via $up_gw dev $up_dev"
     else
-      echo "$cur" | grep -q " dev $up_dev" && continue
-      ip route replace "$host/32" dev "$up_dev" table main metric 5 >/dev/null 2>&1 || continue
-      log "peer route pinned: $host/32 via direct dev $up_dev"
+      changed=0
+      if ! echo "$cur" | grep -q " dev $up_dev"; then
+        ip route replace "$host/32" dev "$up_dev" table main metric 5 >/dev/null 2>&1 || continue
+        changed=1
+      fi
+      for tbl in $(list_uplink_tables); do
+        ip route replace "$host/32" dev "$up_dev" table "$tbl" metric 5 >/dev/null 2>&1 || true
+      done
+      [ "$changed" -eq 1 ] && log "peer route pinned: $host/32 via direct dev $up_dev"
     fi
   done
 }
@@ -109,14 +155,21 @@ repair_route() {
     return 0
   fi
 
-  cur="$(ip -4 route show "$ET_CIDR" 2>/dev/null | head -n1)"
-  if echo "$cur" | grep -q " dev $ET_IF"; then
-    return 0
+  ET_ROUTE_CIDR="$(ip -4 route show dev "$ET_IF" proto kernel scope link 2>/dev/null | awk 'NR==1{print $1}')"
+  [ -n "$ET_ROUTE_CIDR" ] || ET_ROUTE_CIDR="$ET_CIDR"
+
+  cur="$(ip -4 route show "$ET_ROUTE_CIDR" 2>/dev/null | head -n1)"
+  if ! echo "$cur" | grep -q " dev $ET_IF"; then
+    ip route replace "$ET_ROUTE_CIDR" dev "$ET_IF" table main >/dev/null 2>&1 || true
+    log "route repaired: $ET_ROUTE_CIDR -> $ET_IF"
   fi
 
-  ip route replace "$ET_CIDR" dev "$ET_IF" table main >/dev/null 2>&1 || true
+  # Keep policy routing tables consistent so local app replies to EasyTier peers
+  for tbl in $(list_uplink_tables); do
+    ip route replace "$ET_ROUTE_CIDR" dev "$ET_IF" table "$tbl" >/dev/null 2>&1 || true
+  done
+  log "policy table route ensured: $ET_ROUTE_CIDR -> $ET_IF"
   ip route flush cache >/dev/null 2>&1 || true
-  log "route repaired: $ET_CIDR -> $ET_IF"
 }
 
 should_refresh_nat() {

@@ -112,9 +112,13 @@ if [[ "$SKIP_DATA" -eq 0 ]]; then
   tar \
     -C "$OPS_ROOT" \
     --exclude='data/syncthing/sync' \
+    --exclude='data/aria2/data' \
+    --exclude='data/transmission/data' \
+    --exclude='data/transmission/incomplete' \
+    --exclude='data/filebrowser/root' \
     -czf "$DATA_FILE" \
     data
-  log "data snapshot created: ${DATA_FILE} (excluded: /opt/data/syncthing/sync)"
+  log "data snapshot created: ${DATA_FILE} (excluded: /opt/data/syncthing/sync, /opt/data/aria2/data, /opt/data/transmission/data, /opt/data/transmission/incomplete, /opt/data/filebrowser/root)"
 fi
 
 if [[ "$SKIP_REPO_ARTIFACTS_SYNC" -eq 0 ]]; then

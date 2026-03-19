@@ -33,6 +33,7 @@
 2. `/asf/`
 3. `/aria2/`
 4. `/syncthing/`
+5. `/files/`
 
 HomeAssistant 按需启动：
 
